@@ -27,7 +27,10 @@ public class MainActivity extends Activity {
     ProgressDialog progress;
     String response;
     String realPath;
-    String UPLOAD_SERVER = "http://testserver.aeq-web.com/android_send_image/";
+    String UPLOAD_SERVER = "https://api.sightengine.com/1.0/check.json";
+    String api_user;
+    String api_secret;
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -109,6 +112,26 @@ public class MainActivity extends Activity {
     }
 
     public String POST_Data(String filepath) throws Exception {
+
+        Runtime runtime = Runtime.getRuntime();
+
+        try {
+            Process process = runtime.exec("curl -X POST 'https://api.sightengine.com/1.0/check.json' \\\n" +
+                    "-F 'models=offensive' \\\n" +
+                    "-F 'api_user={api_user}' \\\n" +
+                    "-F 'api_secret={api_secret}' \\\n" +
+                    "-F filepath");
+
+            int resultCode = process.waitFor();
+
+            if (resultCode == 0) {
+                // all is good
+            }
+        } catch (Throwable cause) {
+            // process cause
+        }
+
+
         HttpURLConnection connection = null;
         DataOutputStream outputStream = null;
         InputStream inputStream = null;
