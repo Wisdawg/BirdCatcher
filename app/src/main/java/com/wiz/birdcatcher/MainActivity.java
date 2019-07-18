@@ -65,7 +65,7 @@ public class MainActivity extends Activity {
     }
 
     private void upload() {
-        Log.d("Check", mCurrentPhotoPath);
+        Log.d("Check", "the path: " +mCurrentPhotoPath);
         Bitmap bm = BitmapFactory.decodeFile(mCurrentPhotoPath);
         ByteArrayOutputStream bao = new ByteArrayOutputStream();
         bm.compress(Bitmap.CompressFormat.JPEG, 50, bao);
