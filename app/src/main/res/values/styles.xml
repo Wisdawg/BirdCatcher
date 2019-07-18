@@ -8,4 +8,6 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <style name="Theme_AlertDialog">16973835</style>
+
 </resources>
