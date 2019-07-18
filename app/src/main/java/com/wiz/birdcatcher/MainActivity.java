@@ -3,189 +3,166 @@ package com.wiz.birdcatcher;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.net.Uri;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.MediaStore;
-import android.util.Base64;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageView;
+import android.widget.TextView;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
-
-import java.io.ByteArrayOutputStream;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class MainActivity extends Activity {
-
-    Button btpic, btnup;
-    String ba1;
-    public static String URL = "https://api.sightengine.com/1.0/check.json";
-    String mCurrentPhotoPath;
-    ImageView mImageView;
-
-    @Override
+    Button selectButton, uploadButton;
+    TextView view_status;
+    ProgressDialog progress;
+    String response;
+    String realPath;
+    String UPLOAD_SERVER = "http://testserver.aeq-web.com/android_send_image/";
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        btpic = (Button) findViewById(R.id.cpic);
-        mImageView = (ImageView) findViewById(R.id.Imageprev);
-        btpic.setOnClickListener(new View.OnClickListener() {
+        view_status = (TextView) findViewById(R.id.view_status);
+        view_status.setText("Select your Image");
+        selectButton = (Button) findViewById(R.id.button);
+        selectButton.getBackground().setColorFilter(0xFF00FF00, PorterDuff.Mode.MULTIPLY);
+        selectButton.setOnClickListener( new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
-                captureImage();
+            public void onClick(View v) {
+                //Open image selector
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("image/*");
+                startActivityForResult(intent, 0);
+                selectButton.getBackground().setColorFilter(0xffd6d7d7, PorterDuff.Mode.MULTIPLY);
             }
         });
 
-        btnup = (Button) findViewById(R.id.up);
-        btnup.setOnClickListener(new View.OnClickListener() {
+        uploadButton = (Button) findViewById(R.id.button2);
+        uploadButton.setOnClickListener( new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
-                upload();
+            public void onClick(View v) {
+                //Open image selector
+                SendImage start_task = new SendImage();
+                start_task.execute();
+                view_status.setText("Try to upload Image");
+                view_status.setTextColor(Color.GRAY);
             }
         });
-    }
-
-    private void upload() {
-        Log.d("Check", "the path: " +mCurrentPhotoPath);
-        Bitmap bm = BitmapFactory.decodeFile(mCurrentPhotoPath);
-        ByteArrayOutputStream bao = new ByteArrayOutputStream();
-        bm.compress(Bitmap.CompressFormat.JPEG, 50, bao);
-        byte[] ba = bao.toByteArray();
-        String ba1 = Base64.encodeToString(ba, Base64.NO_WRAP);
-
-        // Upload image to server
-        new uploadToServer().execute();
 
     }
-
-    private void captureImage() {
-        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        // Ensure that there's a camera activity to handle the intent
-        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-            // Create the File where the photo should go
-            File photoFile = null;
-            try {
-                photoFile = createImageFile();
-            } catch (IOException ex) {
-                // Error occurred while creating the File
-                ex.printStackTrace();
-            }
-            // Continue only if the File was successfully created
-            if (photoFile != null) {
-                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT,
-                        Uri.fromFile(photoFile));
-                startActivityForResult(takePictureIntent, 100);
-            }
+    @Override
+    protected void onActivityResult(int reqCode, int resCode, Intent data) {
+        if(resCode == Activity.RESULT_OK && data != null){
+            // Check the SDK Version
+            if (Build.VERSION.SDK_INT < 11)
+                realPath = PathOfImage.PathAPI11(this, data.getData());
+            else if (Build.VERSION.SDK_INT < 19)
+                realPath = PathOfImage.Path_API18(this, data.getData());
+            else
+                realPath = PathOfImage.Path_API19(this, data.getData());
+            view_status.setText("Image path: " + realPath + "\n\nYou can start the upload now");
+            uploadButton.getBackground().setColorFilter(0xFF00FF00, PorterDuff.Mode.MULTIPLY);
         }
     }
 
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == 100 && resultCode == RESULT_OK) {
-            setPic();
-        }
-    }
-
-    public class uploadToServer extends AsyncTask<Void, Void, String> {
-
-        private ProgressDialog pd = new ProgressDialog(MainActivity.this);
-
+    public class SendImage extends AsyncTask<Void, Void, Void> {
+        @Override
         protected void onPreExecute() {
-            super.onPreExecute();
-            pd.setMessage("Wait image uploading!");
-            pd.show();
+            progress = new ProgressDialog(MainActivity.this);
+            progress.setTitle("Uploading....");
+            progress.setMessage("Please wait until the process is finished");
+            progress.setCancelable(false); // disable dismiss by tapping outside of the dialog
+            progress.show();
+
         }
 
         @Override
-        protected String doInBackground(Void... params) {
-
-            ArrayList<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-            nameValuePairs.add(new BasicNameValuePair("base64", ba1));
-            nameValuePairs.add(new BasicNameValuePair("ImageName", System.currentTimeMillis() + ".jpg"));
+        protected Void doInBackground(Void... params) {
             try {
-                HttpClient httpclient = new DefaultHttpClient();
-                HttpPost httppost = new HttpPost(URL);
-                httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-                HttpResponse response = httpclient.execute(httppost);
-                String st = EntityUtils.toString(response.getEntity());
-                Log.v("log_tag", "In the try Loop" + st);
-
+                response = POST_Data(realPath);
+                progress.dismiss();
             } catch (Exception e) {
-                Log.v("log_tag", "Error in http connection " + e.toString());
+                response = "Image was not uploaded!";
+                progress.dismiss();
             }
-            return "Success";
-
+            return null;
         }
 
-        protected void onPostExecute(String result) {
-            super.onPostExecute(result);
-            pd.hide();
-            pd.dismiss();
+        @Override
+        protected void onPostExecute(Void result) {
+            if(response.contains("success"))
+            {
+                view_status.setTextColor(Color.parseColor("#21c627"));
+            }
+            view_status.setText(response);
+            uploadButton.getBackground().setColorFilter(0xffd6d7d7, PorterDuff.Mode.MULTIPLY);
         }
     }
 
-    private void setPic() {
-        // Get the dimensions of the View
-        int targetW = mImageView.getWidth();
-        int targetH = mImageView.getHeight();
-
-        // Get the dimensions of the bitmap
-        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
-        bmOptions.inJustDecodeBounds = true;
-        BitmapFactory.decodeFile(mCurrentPhotoPath, bmOptions);
-        int photoW = bmOptions.outWidth;
-        int photoH = bmOptions.outHeight;
-
-        // Determine how much to scale down the image
-        int scaleFactor = Math.min(photoW / targetW, photoH / targetH);
-
-        // Decode the image file into a Bitmap sized to fill the View
-        bmOptions.inJustDecodeBounds = false;
-        bmOptions.inSampleSize = scaleFactor;
-        bmOptions.inPurgeable = true;
-
-        Bitmap bitmap = BitmapFactory.decodeFile(mCurrentPhotoPath, bmOptions);
-        mImageView.setImageBitmap(bitmap);
+    public String POST_Data(String filepath) throws Exception {
+        HttpURLConnection connection = null;
+        DataOutputStream outputStream = null;
+        InputStream inputStream = null;
+        String boundary =  "*****"+Long.toString(System.currentTimeMillis())+"*****";
+        int bytesRead, bytesAvailable, bufferSize;
+        byte[] buffer;
+        String[] q = filepath.split("/");
+        int idx = q.length - 1;
+        File file = new File(filepath);
+        FileInputStream fileInputStream = new FileInputStream(file);
+        URL url = new URL(UPLOAD_SERVER);
+        connection = (HttpURLConnection) url.openConnection();
+        connection.setDoInput(true);
+        connection.setDoOutput(true);
+        connection.setUseCaches(false);
+        connection.setRequestMethod("POST");
+        connection.setRequestProperty("Connection", "Keep-Alive");
+        connection.setRequestProperty("User-Agent", "Android Multipart HTTP Client 1.0");
+        connection.setRequestProperty("Content-Type", "multipart/form-data; boundary="+boundary);
+        outputStream = new DataOutputStream(connection.getOutputStream());
+        outputStream.writeBytes("--" + boundary + "\r\n");
+        outputStream.writeBytes("Content-Disposition: form-data; name=\"" + "img_upload" + "\"; filename=\"" + q[idx] +"\"" + "\r\n");
+        outputStream.writeBytes("Content-Type: image/jpeg" + "\r\n");
+        outputStream.writeBytes("Content-Transfer-Encoding: binary" + "\r\n");
+        outputStream.writeBytes("\r\n");
+        bytesAvailable = fileInputStream.available();
+        bufferSize = Math.min(bytesAvailable, 1048576);
+        buffer = new byte[bufferSize];
+        bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+        while(bytesRead > 0) {
+            outputStream.write(buffer, 0, bufferSize);
+            bytesAvailable = fileInputStream.available();
+            bufferSize = Math.min(bytesAvailable, 1048576);
+            bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+        }
+        outputStream.writeBytes("\r\n");
+        outputStream.writeBytes("--" + boundary + "--" + "\r\n");
+        inputStream = connection.getInputStream();
+        int status = connection.getResponseCode();
+        if (status == HttpURLConnection.HTTP_OK) {
+            BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            String inputLine;
+            StringBuffer response = new StringBuffer();
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            inputStream.close();
+            connection.disconnect();
+            fileInputStream.close();
+            outputStream.flush();
+            outputStream.close();
+            return response.toString();
+        } else {
+            throw new Exception("Non ok response returned");
+        }
     }
-
-    private File createImageFile() throws IOException {
-        // Create an image file name
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        String imageFileName = "JPEG_" + timeStamp + "_";
-        File storageDir = Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES);
-
-        File image = File.createTempFile(
-                imageFileName,  /* prefix */
-                ".jpg",         /* suffix */
-                storageDir      /* directory */
-        );
-
-        // Save a file: path for use with ACTION_VIEW intents
-        mCurrentPhotoPath = image.getAbsolutePath();
-        Log.e("Getpath", "Cool" + mCurrentPhotoPath);
-        return image;
-    }
-
 }
-
-
-
