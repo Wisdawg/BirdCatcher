@@ -8,6 +8,7 @@ import android.graphics.PorterDuff;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -21,15 +22,16 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+
 public class MainActivity extends Activity {
     Button selectButton, uploadButton;
     TextView view_status;
     ProgressDialog progress;
     String response;
     String realPath;
-    String UPLOAD_SERVER = "https://api.sightengine.com/1.0/check.json";
-    String api_user;
-    String api_secret;
+    static final String  UPLOAD_SERVER = "https://api.sightengine.com/1.0/check.json";
+    static final String api_user = "1667316172";
+    static final String api_secret = "QBbnvK6q49UEQiYeQj7y";
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -100,41 +102,48 @@ public class MainActivity extends Activity {
             return null;
         }
 
-        @Override
-        protected void onPostExecute(Void result) {
-            if(response.contains("success"))
-            {
-                view_status.setTextColor(Color.parseColor("#21c627"));
-            }
-            view_status.setText(response);
-            uploadButton.getBackground().setColorFilter(0xffd6d7d7, PorterDuff.Mode.MULTIPLY);
-        }
+//        @Override
+//        protected void onPostExecute(Void result) {
+//            if(response.contains("success"))
+//            {
+//                view_status.setTextColor(Color.parseColor("#21c627"));
+//            }
+//            view_status.setText(response);
+//            uploadButton.getBackground().setColorFilter(0xffd6d7d7, PorterDuff.Mode.MULTIPLY);
+//        }
     }
 
     public String POST_Data(String filepath) throws Exception {
 
-        Runtime runtime = Runtime.getRuntime();
+      /*  Runtime runtime = Runtime.getRuntime();
 
         try {
             Process process = runtime.exec("curl -X POST 'https://api.sightengine.com/1.0/check.json' \\\n" +
                     "-F 'models=offensive' \\\n" +
-                    "-F 'api_user={api_user}' \\\n" +
-                    "-F 'api_secret={api_secret}' \\\n" +
-                    "-F filepath");
+                    "-F 'api_user="+api_user+"' \\\n" +
+                    "-F 'api_secret="+api_secret+"' \\\n" +
+                    "-F media="+filepath);
 
             int resultCode = process.waitFor();
 
             if (resultCode == 0) {
                 // all is good
+                String response = IOUtils.toString(process.getInputStream());
+                Log.d("myTag", "is: " + response);
+
+            } else {
+                Log.d("myTag", "es: " + IOUtils.toString(process.getErrorStream()));
             }
         } catch (Throwable cause) {
             // process cause
-        }
+            Log.d("myTag", "it didn't work");
+            System.out.println(cause.getMessage());
+        }*/
 
 
-        HttpURLConnection connection = null;
-        DataOutputStream outputStream = null;
-        InputStream inputStream = null;
+        HttpURLConnection connection;
+        DataOutputStream outputStream;
+        InputStream inputStream;
         String boundary =  "*****"+Long.toString(System.currentTimeMillis())+"*****";
         int bytesRead, bytesAvailable, bufferSize;
         byte[] buffer;
@@ -143,7 +152,10 @@ public class MainActivity extends Activity {
         File file = new File(filepath);
         FileInputStream fileInputStream = new FileInputStream(file);
         URL url = new URL(UPLOAD_SERVER);
+
+
         connection = (HttpURLConnection) url.openConnection();
+        Log.d("myTag", "0: connection made" );
         connection.setDoInput(true);
         connection.setDoOutput(true);
         connection.setUseCaches(false);
@@ -151,26 +163,52 @@ public class MainActivity extends Activity {
         connection.setRequestProperty("Connection", "Keep-Alive");
         connection.setRequestProperty("User-Agent", "Android Multipart HTTP Client 1.0");
         connection.setRequestProperty("Content-Type", "multipart/form-data; boundary="+boundary);
+        //connection.setRequestProperty("models","offensive");
+        //connection.setRequestProperty("api_user", api_user);
+        //connection.setRequestProperty("api_secret", api_secret);
+        Log.d("myTag", "1: " + filepath );
+       // connection.setRequestProperty("media", filepath);
+        connection.setDoOutput(true);
         outputStream = new DataOutputStream(connection.getOutputStream());
-        outputStream.writeBytes("--" + boundary + "\r\n");
+
+/*        outputStream.writeBytes("--" + boundary + "\r\n");
         outputStream.writeBytes("Content-Disposition: form-data; name=\"" + "img_upload" + "\"; filename=\"" + q[idx] +"\"" + "\r\n");
         outputStream.writeBytes("Content-Type: image/jpeg" + "\r\n");
         outputStream.writeBytes("Content-Transfer-Encoding: binary" + "\r\n");
-        outputStream.writeBytes("\r\n");
+        outputStream.writeBytes("\r\n");*/
+
+        outputStream.writeBytes("models=offensive"+"\r\n");
+        outputStream.writeBytes("api_user="+api_user+"\r\n");
+        outputStream.writeBytes("api_secret="+api_secret+"\r\n");
+        outputStream.writeBytes("media=");
+
+        //send file here
         bytesAvailable = fileInputStream.available();
         bufferSize = Math.min(bytesAvailable, 1048576);
         buffer = new byte[bufferSize];
         bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+        Log.d("myTag", "2: bytes and buffers made up");
         while(bytesRead > 0) {
             outputStream.write(buffer, 0, bufferSize);
             bytesAvailable = fileInputStream.available();
             bufferSize = Math.min(bytesAvailable, 1048576);
             bytesRead = fileInputStream.read(buffer, 0, bufferSize);
         }
+        //
         outputStream.writeBytes("\r\n");
-        outputStream.writeBytes("--" + boundary + "--" + "\r\n");
-        inputStream = connection.getInputStream();
+
+
+
+
+        //outputStream.writeBytes("\r\n");
+
+        //outputStream.writeBytes("--" + boundary + "--" + "\r\n");
+
         int status = connection.getResponseCode();
+        Log.d("myTag", "3.3: status number: "+status);
+        inputStream = connection.getInputStream();
+        Log.d("myTag", "3.4");
+
         if (status == HttpURLConnection.HTTP_OK) {
             BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
             String inputLine;
@@ -183,9 +221,11 @@ public class MainActivity extends Activity {
             fileInputStream.close();
             outputStream.flush();
             outputStream.close();
+            Log.d("myTag", "is: " + response.toString());
             return response.toString();
         } else {
             throw new Exception("Non ok response returned");
         }
+
     }
 }
