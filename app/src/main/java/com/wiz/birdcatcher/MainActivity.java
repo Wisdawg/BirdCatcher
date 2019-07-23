@@ -13,6 +13,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -29,6 +32,8 @@ public class MainActivity extends Activity {
     TextView view_status;
     ProgressDialog progress;
     String response;
+    JSONObject jObj;
+    String responseCheck;
     String realPath;
     static final String  UPLOAD_SERVER = "https://api.sightengine.com/1.0/check.json";
     static final String api_user = "1667316172";
@@ -68,7 +73,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int reqCode, int resCode, Intent data) {
         if(resCode == Activity.RESULT_OK && data != null){
-            // Check the SDK Version
+            // Check the SDK Version before calling PathOfImage generator
             if (Build.VERSION.SDK_INT < 11)
                 realPath = PathOfImage.PathAPI11(this, data.getData());
             else if (Build.VERSION.SDK_INT < 19)
@@ -95,7 +100,9 @@ public class MainActivity extends Activity {
         protected Void doInBackground(Void... params) {
             try {
                 response = POST_Data(realPath);
+
                 progress.dismiss();
+
             } catch (Exception e) {
                 response = "Image was not uploaded!";
                 progress.dismiss();
@@ -105,11 +112,17 @@ public class MainActivity extends Activity {
 
         @Override
         protected void onPostExecute(Void result) {
-            if(response.contains("success"))
+            if(responseCheck.contains("success"))
             {
+
                 view_status.setTextColor(Color.parseColor("#21c627"));
             }
-            view_status.setText(response);
+            try {
+                view_status.setText(findTheFlip(response));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
             uploadButton.getBackground().setColorFilter(0xffd6d7d7, PorterDuff.Mode.MULTIPLY);
         }
     }
@@ -140,6 +153,7 @@ public class MainActivity extends Activity {
 
         try {
             response = client.newCall(request).execute();
+            //response = client.newCall(request).execute();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -151,6 +165,39 @@ public class MainActivity extends Activity {
             Log.d("myTag", "Upload was successful.");
         }
 
-        return response.toString();
+        responseCheck = response.toString();
+
+        return response.body().string();
+    }
+
+    public String findTheFlip(String response) throws JSONException {
+        String guess;
+        Log.d("myTag", response);
+
+        jObj = new JSONObject(response);
+
+        if (response.contains("middlefinger") ){
+            String offensive;
+            String prob = "";
+                offensive = jObj.getString("offensive");
+                jObj = new JSONObject(offensive);
+                prob = jObj.getString("prob");
+
+            Log.d("myTag", prob);
+
+            if(Float.parseFloat(prob)>.90){
+                guess ="Yep, there's a middle finger there better cover it up.";
+                jObj = new JSONObject(jObj.getString("boxes"));
+                float x1=Float.parseFloat(jObj.getString("x1"));
+                float x2=Float.parseFloat(jObj.getString("x2"));
+                float y1=Float.parseFloat(jObj.getString("y1"));
+                float y2=Float.parseFloat(jObj.getString("y2"));
+            }
+            else{guess ="There might be a middle finger in there but we're not sure";}
+        }
+        else{
+            guess = "Nope, there isn't a middle finger in this pic. Try again.";
+        }
+        return guess;
     }
 }
