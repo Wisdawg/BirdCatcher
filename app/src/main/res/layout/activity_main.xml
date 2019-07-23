@@ -10,6 +10,14 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context=".MainActivity" >
 
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="395dp"
+        android:layout_height="494dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="11dp"
+        tools:src="@tools:sample/avatars" />
+
     <TextView
         android:id="@+id/view_status"
         android:layout_width="wrap_content"
@@ -35,5 +43,16 @@
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
         android:layout_width="160dp" />
+
+<!--    <TextView
+        android:id="@+id/imageResponse"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/imageView"
+        android:layout_alignEnd="@+id/button2"
+        android:layout_marginEnd="163dp"
+        android:layout_marginBottom="22dp"
+        android:text="hello_world" />-->
+
 
 </RelativeLayout>

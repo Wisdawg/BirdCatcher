@@ -13,6 +13,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -118,7 +119,9 @@ public class MainActivity extends Activity {
                 view_status.setTextColor(Color.parseColor("#21c627"));
             }
             try {
+                System.out.println("Find the flip");
                 view_status.setText(findTheFlip(response));
+                System.out.println("Done");
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -155,6 +158,7 @@ public class MainActivity extends Activity {
             response = client.newCall(request).execute();
             //response = client.newCall(request).execute();
         } catch (IOException e) {
+            Log.d("myTag", "Exception");
             e.printStackTrace();
         }
 
@@ -176,28 +180,32 @@ public class MainActivity extends Activity {
 
         jObj = new JSONObject(response);
 
-        if (response.contains("middlefinger") ){
+        if (response.contains("middlefinger")){
             String offensive;
             String prob = "";
-                offensive = jObj.getString("offensive");
-                jObj = new JSONObject(offensive);
-                prob = jObj.getString("prob");
+            offensive = jObj.getString("offensive");
+            jObj = new JSONObject(offensive);
+            prob = jObj.getString("prob");
 
             Log.d("myTag", prob);
 
-            if(Float.parseFloat(prob)>.90){
-                guess ="Yep, there's a middle finger there better cover it up.";
-                jObj = new JSONObject(jObj.getString("boxes"));
+            if(Float.parseFloat(prob)>=.50){
+                String boxes = jObj.getString("boxes");
+                JSONArray jArray = new JSONArray(boxes);
+                jObj = jArray.getJSONObject(0);
                 float x1=Float.parseFloat(jObj.getString("x1"));
                 float x2=Float.parseFloat(jObj.getString("x2"));
                 float y1=Float.parseFloat(jObj.getString("y1"));
                 float y2=Float.parseFloat(jObj.getString("y2"));
+                guess ="Yep, there's a middle finger there better cover it up.";
+
             }
             else{guess ="There might be a middle finger in there but we're not sure";}
         }
         else{
             guess = "Nope, there isn't a middle finger in this pic. Try again.";
         }
+        //Log.d("myTag", guess);
         return guess;
     }
 }
