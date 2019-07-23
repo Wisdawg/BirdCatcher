@@ -3,6 +3,8 @@ package com.wiz.birdcatcher;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.os.AsyncTask;
@@ -11,6 +13,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import org.json.JSONArray;
@@ -31,6 +34,9 @@ import okhttp3.Response;
 public class MainActivity extends Activity {
     Button selectButton, uploadButton;
     TextView view_status;
+    Bitmap myBitmap;
+    ImageView myImage;
+    ImageView birdImage;
     ProgressDialog progress;
     String response;
     JSONObject jObj;
@@ -83,6 +89,9 @@ public class MainActivity extends Activity {
                 realPath = PathOfImage.Path_API19(this, data.getData());
             view_status.setText("Image path: " + realPath + "\n\nYou can start the upload now");
             uploadButton.getBackground().setColorFilter(0xFF00FF00, PorterDuff.Mode.MULTIPLY);
+            myBitmap = BitmapFactory.decodeFile(realPath);
+            myImage = (ImageView) findViewById(R.id.imageView);
+            myImage.setImageBitmap(myBitmap);
         }
     }
 
@@ -198,6 +207,8 @@ public class MainActivity extends Activity {
                 float y1=Float.parseFloat(jObj.getString("y1"));
                 float y2=Float.parseFloat(jObj.getString("y2"));
                 guess ="Yep, there's a middle finger there better cover it up.";
+                ReplaceFinger.coordSet(x1,x2,y1,y2,myImage);
+                birdImage.setVisibility(View.VISIBLE);
 
             }
             else{guess ="There might be a middle finger in there but we're not sure";}
