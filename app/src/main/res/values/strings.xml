@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">BirdCatcher</string>
+    <string name="action_settings">Settings</string>
+    <string name="permission_necessary">Permission is Necessary</string>
+    <string name="storage_permission_is_necessary_to_wrote_event">Storage Permission is Necessary to the wrote event</string>
 </resources>

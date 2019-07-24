@@ -36,7 +36,7 @@ public class MainActivity extends Activity {
     TextView view_status;
     Bitmap myBitmap;
     ImageView myImage;
-    ImageView birdImage;
+    ImageView birdImage= null;
     ProgressDialog progress;
     String response;
     JSONObject jObj;
@@ -45,9 +45,14 @@ public class MainActivity extends Activity {
     static final String  UPLOAD_SERVER = "https://api.sightengine.com/1.0/check.json";
     static final String api_user = "1667316172";
     static final String api_secret = "QBbnvK6q49UEQiYeQj7y";
+    private static final int PERMISSION_REQUEST_CODE = 200;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+/*        if (checkPermission()) {
+                requestPermissionAndContinue();
+        }*/
+
         setContentView(R.layout.activity_main);
         view_status = (TextView) findViewById(R.id.view_status);
         view_status.setText("Select your Image");
@@ -56,11 +61,16 @@ public class MainActivity extends Activity {
         selectButton.setOnClickListener( new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
                 //Open image selector
                 Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                 intent.setType("image/*");
                 startActivityForResult(intent, 0);
                 selectButton.getBackground().setColorFilter(0xffd6d7d7, PorterDuff.Mode.MULTIPLY);
+                if (birdImage!=null){
+                    birdImage.setVisibility(View.INVISIBLE);
+                }
+
             }
         });
 
@@ -92,6 +102,7 @@ public class MainActivity extends Activity {
             myBitmap = BitmapFactory.decodeFile(realPath);
             myImage = (ImageView) findViewById(R.id.imageView);
             myImage.setImageBitmap(myBitmap);
+            birdImage = (ImageView) findViewById(R.id.birdView);
         }
     }
 
@@ -207,7 +218,14 @@ public class MainActivity extends Activity {
                 float y1=Float.parseFloat(jObj.getString("y1"));
                 float y2=Float.parseFloat(jObj.getString("y2"));
                 guess ="Yep, there's a middle finger there better cover it up.";
-                ReplaceFinger.coordSet(x1,x2,y1,y2,myImage);
+                int coord[] = ReplaceFinger.coordSet(x1,x2,y1,y2,myImage);
+
+                //left bound indexed at 0, right at 1, top at 2, bottom at 3
+
+                birdImage.setLeft(coord[0]);
+                birdImage.setRight(coord[1]);
+                birdImage.setTop(coord[2]);
+                birdImage.setBottom(coord[3]);
                 birdImage.setVisibility(View.VISIBLE);
 
             }
@@ -219,4 +237,61 @@ public class MainActivity extends Activity {
         //Log.d("myTag", guess);
         return guess;
     }
+
+   /* private boolean checkPermission() {
+
+        return ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(this, READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestPermissionAndContinue() {
+        if (ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(this, READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, WRITE_EXTERNAL_STORAGE)
+                    && ActivityCompat.shouldShowRequestPermissionRationale(this, READ_EXTERNAL_STORAGE)) {
+                AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
+                alertBuilder.setCancelable(true);
+                alertBuilder.setTitle(getString(R.string.permission_necessary));
+                alertBuilder.setMessage(R.string.storage_permission_is_necessary_to_wrote_event);
+                alertBuilder.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+                    public void onClick(DialogInterface dialog, int which) {
+                        ActivityCompat.requestPermissions(MainActivity.this, new String[]{WRITE_EXTERNAL_STORAGE
+                                , READ_EXTERNAL_STORAGE}, PERMISSION_REQUEST_CODE);
+                    }
+                });
+                AlertDialog alert = alertBuilder.create();
+                alert.show();
+                Log.e("", "permission denied, show dialog");
+            } else {
+                ActivityCompat.requestPermissions(MainActivity.this, new String[]{WRITE_EXTERNAL_STORAGE,
+                        READ_EXTERNAL_STORAGE}, PERMISSION_REQUEST_CODE);
+            }
+        } //else break;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (permissions.length > 0 && grantResults.length > 0) {
+
+                boolean flag = true;
+                for (int i = 0; i < grantResults.length; i++) {
+                    if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
+                        flag = false;
+                    }
+                }
+                if (!flag) {
+                    finish();
+                }
+
+            } else {
+                finish();
+            }
+        } else {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }*/
 }
