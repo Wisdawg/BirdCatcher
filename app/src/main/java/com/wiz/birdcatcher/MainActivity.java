@@ -4,17 +4,22 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.support.constraint.ConstraintLayout;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -32,28 +37,30 @@ import okhttp3.Response;
 
 
 public class MainActivity extends Activity {
-    Button selectButton, uploadButton;
+    Button selectButton, uploadButton, screenshotButton;
     TextView view_status;
     Bitmap myBitmap;
     ImageView myImage;
     ImageView birdImage= null;
+    ConstraintLayout cl;
     ProgressDialog progress;
     String response;
     JSONObject jObj;
     String responseCheck;
     String realPath;
+    Bitmap screenShot;
     static final String  UPLOAD_SERVER = "https://api.sightengine.com/1.0/check.json";
     static final String api_user = "1667316172";
     static final String api_secret = "QBbnvK6q49UEQiYeQj7y";
-    private static final int PERMISSION_REQUEST_CODE = 200;
+    //private static final int PERMISSION_REQUEST_CODE = 200;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-/*        if (checkPermission()) {
-                requestPermissionAndContinue();
-        }*/
-
         setContentView(R.layout.activity_main);
+
+
+        cl = (ConstraintLayout) findViewById(R.id.screenshot_layout);
+        View view1 = cl;
         view_status = (TextView) findViewById(R.id.view_status);
         view_status.setText("Select your Image");
         selectButton = (Button) findViewById(R.id.button);
@@ -70,6 +77,7 @@ public class MainActivity extends Activity {
                 if (birdImage!=null){
                     birdImage.setVisibility(View.INVISIBLE);
                 }
+                view_status.setText("Try to upload the Image");
 
             }
         });
@@ -81,7 +89,38 @@ public class MainActivity extends Activity {
                 //Open image selector
                 SendImage start_task = new SendImage();
                 start_task.execute();
-                view_status.setText("Try to upload Image");
+                view_status.setTextColor(Color.GRAY);
+                screenshotButton.getBackground().setColorFilter(0xFF00FF00, PorterDuff.Mode.MULTIPLY);
+            }
+        });
+
+        screenshotButton = (Button) findViewById(R.id.button3);
+        screenshotButton.setOnClickListener( new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Bitmap screenShot = TakeScreenShot(cl);
+                /*
+                    MediaStore
+                        The Media provider contains meta data for all available media
+                        on both internal and external storage devices.
+                    MediaStore.Images
+                        Contains meta data for all available images.
+
+                    insertImage(ContentResolver cr, Bitmap source, String title, String description)
+                        Insert an image and create a thumbnail for it.
+                */
+
+                // Save the screenshot on device gallery
+                MediaStore.Images.Media.insertImage(
+                        getContentResolver(),
+                        screenShot,
+                        "Flip",
+                        "Screenshot of Your Flipped Photo"
+                );
+
+                // Notify the user that screenshot taken.
+                Toast.makeText(getApplicationContext(), "Screen Captured.",Toast.LENGTH_SHORT).show();
+                view_status.setText("You've downloaded your flipped-photo");
                 view_status.setTextColor(Color.GRAY);
             }
         });
@@ -221,7 +260,6 @@ public class MainActivity extends Activity {
                 int coord[] = ReplaceFinger.coordSet(x1,x2,y1,y2,myImage);
 
                 //left bound indexed at 0, right at 1, top at 2, bottom at 3
-
                 birdImage.setLeft(coord[0]);
                 birdImage.setRight(coord[1]);
                 birdImage.setTop(coord[2]);
@@ -238,60 +276,57 @@ public class MainActivity extends Activity {
         return guess;
     }
 
-   /* private boolean checkPermission() {
 
-        return ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
-                && ContextCompat.checkSelfPermission(this, READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED;
+    // Custom method to take screenshot
+    public Bitmap TakeScreenShot(View rootView)
+    {
+        /*
+            public static Bitmap createBitmap (int width, int height, Bitmap.Config config)
+                Returns a mutable bitmap with the specified width and height.
+                Its initial density is as per getDensity().
+
+                Parameters
+                    width : The width of the bitmap
+                    height : The height of the bitmap
+                    config : The bitmap config to create.
+
+                Throws
+                    IllegalArgumentException : if the width or height are <= 0
+        */
+
+        /*
+            Bitmap.Config
+                Possible bitmap configurations. A bitmap configuration describes how pixels
+                are stored. This affects the quality (color depth) as well as the ability
+                to display transparent/translucent colors.
+
+                ARGB_8888
+                    Each pixel is stored on 4 bytes.
+        */
+
+        // Screenshot taken for the specified root view and its child elements.
+        Bitmap bitmap = Bitmap.createBitmap(rootView.getWidth(),rootView.getHeight(),Config.ARGB_8888);
+
+        /*
+            Canvas
+                The Canvas class holds the "draw" calls. To draw something, you need
+                4 basic components:
+                    A Bitmap to hold the pixels,
+                    a Canvas to host the draw calls (writing into the bitmap),
+                    a drawing primitive (e.g. Rect, Path, text, Bitmap),
+                    and a paint (to describe the colors and styles for the drawing).
+        */
+
+        /*
+            public Canvas (Bitmap bitmap)
+                Construct a canvas with the specified bitmap to draw into. The bitmap must be mutable.
+                The initial target density of the canvas is the same as the given bitmap's density.
+
+                Parameters
+                bitmap : Specifies a mutable bitmap for the canvas to draw into.
+        */
+        Canvas canvas = new Canvas(bitmap);
+        rootView.draw(canvas);
+        return bitmap;
     }
-
-    private void requestPermissionAndContinue() {
-        if (ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
-                && ContextCompat.checkSelfPermission(this, READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this, WRITE_EXTERNAL_STORAGE)
-                    && ActivityCompat.shouldShowRequestPermissionRationale(this, READ_EXTERNAL_STORAGE)) {
-                AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
-                alertBuilder.setCancelable(true);
-                alertBuilder.setTitle(getString(R.string.permission_necessary));
-                alertBuilder.setMessage(R.string.storage_permission_is_necessary_to_wrote_event);
-                alertBuilder.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
-                    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
-                    public void onClick(DialogInterface dialog, int which) {
-                        ActivityCompat.requestPermissions(MainActivity.this, new String[]{WRITE_EXTERNAL_STORAGE
-                                , READ_EXTERNAL_STORAGE}, PERMISSION_REQUEST_CODE);
-                    }
-                });
-                AlertDialog alert = alertBuilder.create();
-                alert.show();
-                Log.e("", "permission denied, show dialog");
-            } else {
-                ActivityCompat.requestPermissions(MainActivity.this, new String[]{WRITE_EXTERNAL_STORAGE,
-                        READ_EXTERNAL_STORAGE}, PERMISSION_REQUEST_CODE);
-            }
-        } //else break;
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            if (permissions.length > 0 && grantResults.length > 0) {
-
-                boolean flag = true;
-                for (int i = 0; i < grantResults.length; i++) {
-                    if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
-                        flag = false;
-                    }
-                }
-                if (!flag) {
-                    finish();
-                }
-
-            } else {
-                finish();
-            }
-        } else {
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        }
-    }*/
 }
