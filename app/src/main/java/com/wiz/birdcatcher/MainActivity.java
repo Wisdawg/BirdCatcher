@@ -38,19 +38,16 @@ public class MainActivity extends Activity {
     Button selectButton, uploadButton, screenshotButton;
     TextView view_status;
     Bitmap myBitmap;
-    Bitmap birdBitmap;
-    Bitmap comboBitmap;
+    Bitmap screenShot;
     ImageView myImage;
     ImageView birdImage= null;
-    ImageView view1;
     ConstraintLayout cl;
     ProgressDialog progress;
     String response;
-    JSONObject jObj;
     String responseCheck;
     String realPath;
-    Bitmap screenShot;
-    int coord[];
+    JSONObject jObj;
+
     static final String  UPLOAD_SERVER = "https://api.sightengine.com/1.0/check.json";
     static final String api_user = "1667316172";
     static final String api_secret = "QBbnvK6q49UEQiYeQj7y";
@@ -61,15 +58,15 @@ public class MainActivity extends Activity {
 
 
         cl = (ConstraintLayout) findViewById(R.id.screenshot_layout);
-        view1 = (ImageView)findViewById(R.id.comboView);
+        //view1 = (ImageView)findViewById(R.id.comboView);
         view_status = (TextView) findViewById(R.id.view_status);
         view_status.setText("Select your Image");
+
         selectButton = (Button) findViewById(R.id.button);
         selectButton.getBackground().setColorFilter(0xFF00FF00, PorterDuff.Mode.MULTIPLY);
         selectButton.setOnClickListener( new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
                 //Open image selector
                 Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                 intent.setType("image/*");
@@ -81,12 +78,8 @@ public class MainActivity extends Activity {
                 if (myImage!=null){
                     myImage.setVisibility(View.VISIBLE);
                 }
-                if (view1!=null){
-                    view1.setVisibility(View.INVISIBLE);
-                }
 
                 view_status.setText("Try to upload the Image");
-
             }
         });
 
@@ -98,7 +91,7 @@ public class MainActivity extends Activity {
                 SendImage start_task = new SendImage();
                 start_task.execute();
                 view_status.setTextColor(Color.GRAY);
-                screenshotButton.getBackground().setColorFilter(0xFF00FF00, PorterDuff.Mode.MULTIPLY);
+
             }
         });
 
@@ -106,23 +99,13 @@ public class MainActivity extends Activity {
         screenshotButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //comboBitmap = createSingleImageFromMultipleImages(myBitmap, birdBitmap);
-//                view1.setImageBitmap(screenShot);
-//                myImage.setVisibility(view1.INVISIBLE);
-//                view1.setVisibility(View.VISIBLE);
-                //Bitmap screenShot = TakeScreenShot(view1);
-
                 /*
                     MediaStore
-                        The Media provider contains meta data for all available media
-                        on both internal and external storage devices.
-                    MediaStore.Images
-                        Contains meta data for all available images.
-
+                        The Media provider contains meta data for all available media on both internal and external storage devices.
+                    MediaStore.Images Contains meta data for all available images.
                     insertImage(ContentResolver cr, Bitmap source, String title, String description)
-                        Insert an image and create a thumbnail for it.
+                        this will insert an image and create a thumbnail for it.
                 */
-
                 // Save the screenshot on device gallery
                 MediaStore.Images.Media.insertImage(
                         getContentResolver(),
@@ -138,6 +121,9 @@ public class MainActivity extends Activity {
             }
         });
 
+        uploadButton.setEnabled(false);
+        screenshotButton.setEnabled(false);
+
     }
     @Override
     protected void onActivityResult(int reqCode, int resCode, Intent data) {
@@ -151,6 +137,9 @@ public class MainActivity extends Activity {
                 realPath = PathOfImage.Path_API19(this, data.getData());
             view_status.setText("Image path: " + realPath + "\n\nYou can start the upload now");
             uploadButton.getBackground().setColorFilter(0xFF00FF00, PorterDuff.Mode.MULTIPLY);
+            uploadButton.setEnabled(true);
+            screenshotButton.getBackground().setColorFilter(0xffd6d7d7, PorterDuff.Mode.MULTIPLY);
+            screenshotButton.setEnabled(false);
             myBitmap = BitmapFactory.decodeFile(realPath);
             myImage = (ImageView) findViewById(R.id.imageView);
             myImage.setImageBitmap(myBitmap);
@@ -189,15 +178,17 @@ public class MainActivity extends Activity {
             {
 
                 view_status.setTextColor(Color.parseColor("#21c627"));
+
             }
             try {
                 System.out.println("Find the flip");
                 view_status.setText(findTheFlip(response));
-                System.out.println("Done");
+                screenshotButton.getBackground().setColorFilter(0xFF00FF00, PorterDuff.Mode.MULTIPLY);
+                screenshotButton.setEnabled(true);
+
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-
             uploadButton.getBackground().setColorFilter(0xffd6d7d7, PorterDuff.Mode.MULTIPLY);
         }
     }
@@ -240,9 +231,7 @@ public class MainActivity extends Activity {
         } else {
             Log.d("myTag", "Upload was successful.");
         }
-
         responseCheck = response.toString();
-
         return response.body().string();
     }
 
@@ -273,9 +262,8 @@ public class MainActivity extends Activity {
                 guess ="Yep, there's a middle finger there better cover it up.";
 
                 screenShot= ReplaceFinger.replace(x1,x2,y1,y2,myImage,birdImage);
-                view1.setImageBitmap(screenShot);
-                myImage.setVisibility(view1.INVISIBLE);
-                view1.setVisibility(View.VISIBLE);
+                myImage.setImageBitmap(screenShot);
+
 
 
             }
@@ -284,7 +272,6 @@ public class MainActivity extends Activity {
         else{
             guess = "Nope, there isn't a middle finger in this pic. Try again.";
         }
-        //Log.d("myTag", guess);
         return guess;
     }
 }
