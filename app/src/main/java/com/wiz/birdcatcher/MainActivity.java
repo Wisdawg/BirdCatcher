@@ -4,9 +4,7 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.Bitmap.Config;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.os.AsyncTask;
@@ -40,8 +38,11 @@ public class MainActivity extends Activity {
     Button selectButton, uploadButton, screenshotButton;
     TextView view_status;
     Bitmap myBitmap;
+    Bitmap birdBitmap;
+    Bitmap comboBitmap;
     ImageView myImage;
     ImageView birdImage= null;
+    ImageView view1;
     ConstraintLayout cl;
     ProgressDialog progress;
     String response;
@@ -49,10 +50,10 @@ public class MainActivity extends Activity {
     String responseCheck;
     String realPath;
     Bitmap screenShot;
+    int coord[];
     static final String  UPLOAD_SERVER = "https://api.sightengine.com/1.0/check.json";
     static final String api_user = "1667316172";
     static final String api_secret = "QBbnvK6q49UEQiYeQj7y";
-    //private static final int PERMISSION_REQUEST_CODE = 200;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -60,7 +61,7 @@ public class MainActivity extends Activity {
 
 
         cl = (ConstraintLayout) findViewById(R.id.screenshot_layout);
-        View view1 = cl;
+        view1 = (ImageView)findViewById(R.id.comboView);
         view_status = (TextView) findViewById(R.id.view_status);
         view_status.setText("Select your Image");
         selectButton = (Button) findViewById(R.id.button);
@@ -77,6 +78,13 @@ public class MainActivity extends Activity {
                 if (birdImage!=null){
                     birdImage.setVisibility(View.INVISIBLE);
                 }
+                if (myImage!=null){
+                    myImage.setVisibility(View.VISIBLE);
+                }
+                if (view1!=null){
+                    view1.setVisibility(View.INVISIBLE);
+                }
+
                 view_status.setText("Try to upload the Image");
 
             }
@@ -95,10 +103,15 @@ public class MainActivity extends Activity {
         });
 
         screenshotButton = (Button) findViewById(R.id.button3);
-        screenshotButton.setOnClickListener( new View.OnClickListener() {
+        screenshotButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Bitmap screenShot = TakeScreenShot(cl);
+                //comboBitmap = createSingleImageFromMultipleImages(myBitmap, birdBitmap);
+//                view1.setImageBitmap(screenShot);
+//                myImage.setVisibility(view1.INVISIBLE);
+//                view1.setVisibility(View.VISIBLE);
+                //Bitmap screenShot = TakeScreenShot(view1);
+
                 /*
                     MediaStore
                         The Media provider contains meta data for all available media
@@ -150,7 +163,7 @@ public class MainActivity extends Activity {
         protected void onPreExecute() {
             progress = new ProgressDialog(MainActivity.this);
             progress.setTitle("Uploading....");
-            progress.setMessage("Please wait until the process is finished");
+            progress.setMessage("Please wait while we analyze the picture");
             progress.setCancelable(false); // disable dismiss by tapping outside of the dialog
             progress.show();
 
@@ -251,20 +264,19 @@ public class MainActivity extends Activity {
             if(Float.parseFloat(prob)>=.50){
                 String boxes = jObj.getString("boxes");
                 JSONArray jArray = new JSONArray(boxes);
+
                 jObj = jArray.getJSONObject(0);
                 float x1=Float.parseFloat(jObj.getString("x1"));
                 float x2=Float.parseFloat(jObj.getString("x2"));
                 float y1=Float.parseFloat(jObj.getString("y1"));
                 float y2=Float.parseFloat(jObj.getString("y2"));
                 guess ="Yep, there's a middle finger there better cover it up.";
-                int coord[] = ReplaceFinger.coordSet(x1,x2,y1,y2,myImage);
 
-                //left bound indexed at 0, right at 1, top at 2, bottom at 3
-                birdImage.setLeft(coord[0]);
-                birdImage.setRight(coord[1]);
-                birdImage.setTop(coord[2]);
-                birdImage.setBottom(coord[3]);
-                birdImage.setVisibility(View.VISIBLE);
+                screenShot= ReplaceFinger.replace(x1,x2,y1,y2,myImage,birdImage);
+                view1.setImageBitmap(screenShot);
+                myImage.setVisibility(view1.INVISIBLE);
+                view1.setVisibility(View.VISIBLE);
+
 
             }
             else{guess ="There might be a middle finger in there but we're not sure";}
@@ -274,59 +286,5 @@ public class MainActivity extends Activity {
         }
         //Log.d("myTag", guess);
         return guess;
-    }
-
-
-    // Custom method to take screenshot
-    public Bitmap TakeScreenShot(View rootView)
-    {
-        /*
-            public static Bitmap createBitmap (int width, int height, Bitmap.Config config)
-                Returns a mutable bitmap with the specified width and height.
-                Its initial density is as per getDensity().
-
-                Parameters
-                    width : The width of the bitmap
-                    height : The height of the bitmap
-                    config : The bitmap config to create.
-
-                Throws
-                    IllegalArgumentException : if the width or height are <= 0
-        */
-
-        /*
-            Bitmap.Config
-                Possible bitmap configurations. A bitmap configuration describes how pixels
-                are stored. This affects the quality (color depth) as well as the ability
-                to display transparent/translucent colors.
-
-                ARGB_8888
-                    Each pixel is stored on 4 bytes.
-        */
-
-        // Screenshot taken for the specified root view and its child elements.
-        Bitmap bitmap = Bitmap.createBitmap(rootView.getWidth(),rootView.getHeight(),Config.ARGB_8888);
-
-        /*
-            Canvas
-                The Canvas class holds the "draw" calls. To draw something, you need
-                4 basic components:
-                    A Bitmap to hold the pixels,
-                    a Canvas to host the draw calls (writing into the bitmap),
-                    a drawing primitive (e.g. Rect, Path, text, Bitmap),
-                    and a paint (to describe the colors and styles for the drawing).
-        */
-
-        /*
-            public Canvas (Bitmap bitmap)
-                Construct a canvas with the specified bitmap to draw into. The bitmap must be mutable.
-                The initial target density of the canvas is the same as the given bitmap's density.
-
-                Parameters
-                bitmap : Specifies a mutable bitmap for the canvas to draw into.
-        */
-        Canvas canvas = new Canvas(bitmap);
-        rootView.draw(canvas);
-        return bitmap;
     }
 }
