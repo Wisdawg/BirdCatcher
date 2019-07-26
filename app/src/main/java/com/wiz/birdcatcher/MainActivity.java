@@ -1,8 +1,10 @@
 package com.wiz.birdcatcher;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -10,8 +12,10 @@ import android.graphics.PorterDuff;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.constraint.ConstraintLayout;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -25,6 +29,9 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 import java.util.Random;
 
 import okhttp3.MediaType;
@@ -36,7 +43,7 @@ import okhttp3.Response;
 
 
 public class MainActivity extends Activity {
-    Button selectButton, uploadButton, screenshotButton;
+    Button selectButton, uploadButton, screenshotButton, cameraButton;
     TextView view_status;
     Bitmap myBitmap;
     Bitmap screenShot;
@@ -47,11 +54,15 @@ public class MainActivity extends Activity {
     String response;
     String responseCheck;
     String realPath;
+    String imageFilePath;
+    Intent intent ;
     JSONObject jObj;
 
     static final String  UPLOAD_SERVER = "https://api.sightengine.com/1.0/check.json";
     static final String api_user = "1667316172";
     static final String api_secret = "QBbnvK6q49UEQiYeQj7y";
+    private static final int REQUEST_CAPTURE_IMAGE = 100;
+    public  static final int RequestPermissionCode  = 1 ;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,7 +70,6 @@ public class MainActivity extends Activity {
 
 
         cl = (ConstraintLayout) findViewById(R.id.screenshot_layout);
-        //view1 = (ImageView)findViewById(R.id.comboView);
         view_status = (TextView) findViewById(R.id.view_status);
         view_status.setText("Select your Image");
 
@@ -122,13 +132,40 @@ public class MainActivity extends Activity {
             }
         });
 
+        cameraButton =(Button) findViewById(R.id.button4);
+        cameraButton.setOnClickListener( new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                intent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+                startActivityForResult(intent, 7);
+            }
+        });
+
         uploadButton.setEnabled(false);
         screenshotButton.setEnabled(false);
 
     }
     @Override
     protected void onActivityResult(int reqCode, int resCode, Intent data) {
-        if(resCode == Activity.RESULT_OK && data != null){
+        if (reqCode == 7 && resCode == RESULT_OK) {
+            myBitmap = (Bitmap) data.getExtras().get("data");
+
+            String timeStamp =
+                    new SimpleDateFormat("yyyyMMdd_HHmmss",
+                            Locale.getDefault()).format(new Date());
+            String imageFileName = "IMG_" + timeStamp + "_";
+            Util.saveBitmap(myBitmap, Environment.DIRECTORY_PICTURES, imageFileName);
+
+            view_status.setText("You can start the upload now");
+            uploadButton.getBackground().setColorFilter(0xFF00FF00, PorterDuff.Mode.MULTIPLY);
+            uploadButton.setEnabled(true);
+            screenshotButton.getBackground().setColorFilter(0xffd6d7d7, PorterDuff.Mode.MULTIPLY);
+            screenshotButton.setEnabled(false);
+            myImage = (ImageView) findViewById(R.id.imageView);
+            myImage.setImageBitmap(myBitmap);
+            birdImage = (ImageView) findViewById(R.id.birdView);
+        }
+        else if(resCode == Activity.RESULT_OK && data != null){
             // Check the SDK Version before calling PathOfImage generator
             if (Build.VERSION.SDK_INT < 11)
                 realPath = PathOfImage.PathAPI11(this, data.getData());
@@ -146,6 +183,9 @@ public class MainActivity extends Activity {
             myImage.setImageBitmap(myBitmap);
             birdImage = (ImageView) findViewById(R.id.birdView);
         }
+
+
+
     }
 
     public class SendImage extends AsyncTask<Void, Void, Void> {
@@ -274,6 +314,60 @@ public class MainActivity extends Activity {
         }
         return guess;
     }
+
+    private File createImageFile() throws IOException {
+        String timeStamp =
+                new SimpleDateFormat("yyyyMMdd_HHmmss",
+                        Locale.getDefault()).format(new Date());
+        String imageFileName = "IMG_" + timeStamp + "_";
+        File storageDir =
+                getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,  /* prefix */
+                ".jpg",         /* suffix */
+                storageDir      /* directory */
+        );
+
+        imageFilePath = image.getAbsolutePath();
+        return image;
+    }
+
+    public void EnableRuntimePermission(){
+
+        if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this,
+                Manifest.permission.CAMERA))
+        {
+
+            Toast.makeText(MainActivity.this,"CAMERA permission allows us to Access CAMERA app", Toast.LENGTH_LONG).show();
+
+        } else {
+
+            ActivityCompat.requestPermissions(MainActivity.this,new String[]{
+                    Manifest.permission.CAMERA}, RequestPermissionCode);
+
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int RC, String per[], int[] PResult) {
+
+        switch (RC) {
+
+            case RequestPermissionCode:
+
+                if (PResult.length > 0 && PResult[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    Toast.makeText(MainActivity.this,"Permission Granted, Now your application can access CAMERA.", Toast.LENGTH_LONG).show();
+
+                } else {
+
+                    Toast.makeText(MainActivity.this,"Permission Canceled, Now your application cannot access CAMERA.", Toast.LENGTH_LONG).show();
+
+                }
+                break;
+        }
+    }
+
 
     public void randomBird () {
         //Randomly decide which bird pic to use for censoring
