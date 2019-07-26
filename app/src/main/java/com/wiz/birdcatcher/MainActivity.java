@@ -25,6 +25,7 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Random;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -249,22 +250,21 @@ public class MainActivity extends Activity {
             prob = jObj.getString("prob");
 
             Log.d("myTag", prob);
+            randomBird();
 
             if(Float.parseFloat(prob)>=.50){
                 String boxes = jObj.getString("boxes");
                 JSONArray jArray = new JSONArray(boxes);
-
-                jObj = jArray.getJSONObject(0);
-                float x1=Float.parseFloat(jObj.getString("x1"));
-                float x2=Float.parseFloat(jObj.getString("x2"));
-                float y1=Float.parseFloat(jObj.getString("y1"));
-                float y2=Float.parseFloat(jObj.getString("y2"));
-                guess ="Yep, there's a middle finger there better cover it up.";
-
-                screenShot= ReplaceFinger.replace(x1,x2,y1,y2,myImage,birdImage);
-                myImage.setImageBitmap(screenShot);
-
-
+                guess = "Yep, there's a middle finger there better cover it up.";
+                for(int i=0; i<jArray.length(); i++) {
+                    jObj = jArray.getJSONObject(i);
+                    float x1 = Float.parseFloat(jObj.getString("x1"));
+                    float x2 = Float.parseFloat(jObj.getString("x2"));
+                    float y1 = Float.parseFloat(jObj.getString("y1"));
+                    float y2 = Float.parseFloat(jObj.getString("y2"));
+                    screenShot = ReplaceFinger.replace(x1, x2, y1, y2, myImage, birdImage);
+                    myImage.setImageBitmap(screenShot);
+                }
 
             }
             else{guess ="There might be a middle finger in there but we're not sure";}
@@ -273,5 +273,24 @@ public class MainActivity extends Activity {
             guess = "Nope, there isn't a middle finger in this pic. Try again.";
         }
         return guess;
+    }
+
+    public void randomBird () {
+        //Randomly decide which bird pic to use for censoring
+
+        //Get number between 0 and 5
+        Random random = new Random();
+        int n = random.nextInt(6);
+
+        //Put possible bird pics in an array
+        int[] images = new int[6];
+        images[0] = R.drawable.uglybird_0;
+        images[1] = R.drawable.uglybird_1;
+        images[2] = R.drawable.uglybird_2;
+        images[3] = R.drawable.uglybird_3;
+        images[4] = R.drawable.uglybird_4;
+        images[5] = R.drawable.uglybird_5;
+
+        birdImage.setImageResource(images[n]);
     }
 }
