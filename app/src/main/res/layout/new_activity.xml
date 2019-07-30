@@ -3,8 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#AAA">
+    android:layout_height="match_parent">
 
     <Button
         android:id="@+id/button"
@@ -92,5 +91,5 @@
         app:layout_constraintTop_toTopOf="@+id/imageView"
         app:srcCompat="@drawable/uglybird_1" />
 
-
+    <!--android:background="#AAA">-->
 </android.support.constraint.ConstraintLayout>

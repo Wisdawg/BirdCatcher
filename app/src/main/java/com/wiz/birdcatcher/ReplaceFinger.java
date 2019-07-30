@@ -2,17 +2,34 @@ package com.wiz.birdcatcher;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
 import android.widget.ImageView;
 
 public class ReplaceFinger {
 
-    public static Bitmap replace(float leftProp, float rightProp, float upProp, float downProp, Bitmap pic, ImageView birdImage) {
+    public static Bitmap replace(float leftProp, float rightProp, float upProp, float downProp, Bitmap pic, ImageView birdImage, int angle) {
         float coordinates[] = new float[4];
 
         Bitmap picBitmap = pic;
         Bitmap birdBitmap = ((BitmapDrawable) birdImage.getDrawable()).getBitmap();
+        try {
+            Matrix matrix = new Matrix();
+            if (angle == 90) {
+                matrix.postRotate(-90);
+            }
+            else if (angle == 180) {
+                matrix.postRotate(-180);
+            }
+            else if (angle == 270) {
+                matrix.postRotate(-270);
+            }
+            birdBitmap = Bitmap.createBitmap(birdBitmap, 0, 0, birdBitmap.getWidth(), birdBitmap.getHeight(), matrix, true); // rotating bitmap
+        }
+        catch (Exception e) {
+
+        }
         float viewHeight = picBitmap.getHeight();
         float viewWidth = picBitmap.getWidth();
 

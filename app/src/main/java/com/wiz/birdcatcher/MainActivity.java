@@ -18,7 +18,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
-import android.support.constraint.ConstraintLayout;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
@@ -52,21 +51,19 @@ public class MainActivity extends Activity {
     Bitmap screenShot;
     Bitmap backUpImage;
     ImageView myImage;
-    ImageView birdImage= null;
-    ConstraintLayout cl;
+    ImageView birdImage = null;
     ProgressDialog progress;
     String response;
     String responseCheck;
     String realPath;
     Intent intent ;
     JSONObject jObj;
+    int angle =0;
 
     public static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 123;
     static final String  UPLOAD_SERVER = "https://api.sightengine.com/1.0/check.json";
     static final String api_user = "1667316172";
     static final String api_secret = "QBbnvK6q49UEQiYeQj7y";
-    private static final int REQUEST_CAPTURE_IMAGE = 100;
-    public  static final int RequestPermissionCode  = 1 ;
 
     protected void onCreate(Bundle savedInstanceState) {
         if (checkPermissionREAD_EXTERNAL_STORAGE(this)) {
@@ -151,6 +148,21 @@ public class MainActivity extends Activity {
         screenshotButton.setEnabled(false);
 
     }
+
+    @Override
+    public void onBackPressed() {
+        if (myImage!=null) {
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            startActivityForResult(intent, 0);
+            super.onBackPressed();
+        }
+        else {
+            super.onBackPressed();
+        }
+
+    }
+
     @Override
     protected void onActivityResult(int reqCode, int resCode, Intent data) {
         if (reqCode == 7 && resCode == RESULT_OK) {
@@ -172,12 +184,15 @@ public class MainActivity extends Activity {
                 Matrix matrix = new Matrix();
                 if (orientation == 6) {
                     matrix.postRotate(90);
+                    angle =90;
                 }
                 else if (orientation == 3) {
                     matrix.postRotate(180);
+                    angle =180;
                 }
                 else if (orientation == 8) {
                     matrix.postRotate(270);
+                    angle =270;
                 }
                 myBitmap = Bitmap.createBitmap(myBitmap, 0, 0, myBitmap.getWidth(), myBitmap.getHeight(), matrix, true); // rotating bitmap
             }
@@ -222,12 +237,15 @@ public class MainActivity extends Activity {
                 Matrix matrix = new Matrix();
                 if (orientation == 6) {
                     matrix.postRotate(90);
+                    angle =90;
                 }
                 else if (orientation == 3) {
                     matrix.postRotate(180);
+                    angle =180;
                 }
                 else if (orientation == 8) {
                     matrix.postRotate(270);
+                    angle =270;
                 }
                 myBitmap = Bitmap.createBitmap(myBitmap, 0, 0, myBitmap.getWidth(), myBitmap.getHeight(), matrix, true); // rotating bitmap
             }
@@ -357,7 +375,7 @@ public class MainActivity extends Activity {
                     float x2 = Float.parseFloat(jObj.getString("x2"));
                     float y1 = Float.parseFloat(jObj.getString("y1"));
                     float y2 = Float.parseFloat(jObj.getString("y2"));
-                    screenShot = ReplaceFinger.replace(x1, x2, y1, y2, backUpImage, birdImage);
+                    screenShot = ReplaceFinger.replace(x1, x2, y1, y2, backUpImage, birdImage, angle);
                     try {
                         ExifInterface exif = new ExifInterface(realPath);
                         int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, 1);
