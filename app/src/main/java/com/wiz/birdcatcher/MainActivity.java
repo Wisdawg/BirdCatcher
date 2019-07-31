@@ -16,7 +16,6 @@ import android.media.ExifInterface;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -45,7 +44,8 @@ import okhttp3.Response;
 
 
 public class MainActivity extends Activity {
-    Button selectButton, uploadButton, screenshotButton, cameraButton;
+    Button selectButton, uploadButton, screenshotButton;
+//    Button cameraButton;
     TextView view_status;
     Bitmap myBitmap;
     Bitmap screenShot;
@@ -56,9 +56,10 @@ public class MainActivity extends Activity {
     String response;
     String responseCheck;
     String realPath;
-    Intent intent ;
     JSONObject jObj;
-    int angle =0;
+    int angle = 0;
+    int count = 0;
+
 
     public static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 123;
     static final String  UPLOAD_SERVER = "https://api.sightengine.com/1.0/check.json";
@@ -72,7 +73,6 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.new_activity);
 
-       // cl = (ConstraintLayout) findViewById(R.id.screenshot_layout);
         view_status = (TextView) findViewById(R.id.view_status);
         view_status.setText("Select your Image");
 
@@ -92,7 +92,6 @@ public class MainActivity extends Activity {
                 if (myImage!=null){
                     myImage.setVisibility(View.VISIBLE);
                 }
-
                 view_status.setText("Try to upload the Image");
             }
         });
@@ -135,29 +134,33 @@ public class MainActivity extends Activity {
             }
         });
 
-        cameraButton =(Button) findViewById(R.id.button4);
+        /*cameraButton =(Button) findViewById(R.id.button4);
         cameraButton.setOnClickListener( new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                intent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
-                startActivityForResult(intent, 7);
+                Intent intent1 = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+                startActivityForResult(intent1, 7);
             }
-        });
+        });*/
 
         uploadButton.setEnabled(false);
         screenshotButton.setEnabled(false);
 
     }
 
+
+
+
     @Override
     public void onBackPressed() {
+        count++;
         if (myImage!=null) {
-            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-            intent.setType("image/*");
-            startActivityForResult(intent, 0);
-            super.onBackPressed();
+            Intent intent2 = new Intent(Intent.ACTION_GET_CONTENT);
+            intent2.setType("image/*");
+            startActivityForResult(intent2, 0);
         }
         else {
+
             super.onBackPressed();
         }
 
@@ -165,39 +168,38 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onActivityResult(int reqCode, int resCode, Intent data) {
-        if (reqCode == 7 && resCode == RESULT_OK) {
+        /*if (reqCode == 7 && resCode == RESULT_OK) {
             myBitmap = (Bitmap) data.getExtras().get("data");
             System.out.println("Camera Progress");
-            /*String timeStamp =
-                    new SimpleDateFormat("yyyyMMdd_HHmmss",
-                            Locale.getDefault()).format(new Date());
-            String imageFileName = "IMG_" + timeStamp + "_";*/
-            //realPath=Util.saveBitmap(myBitmap, Environment.DIRECTORY_PICTURES, imageFileName);
+
             realPath = ImageSave.saveTempBitmap(myBitmap);
-            System.out.println(myBitmap);
-            System.out.println(Environment.DIRECTORY_PICTURES);
             System.out.println(realPath);
             try {
                 ExifInterface exif = new ExifInterface(realPath);
                 int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, 1);
+                System.out.println(orientation);
                 Log.d("EXIF", "Exif: " + orientation);
                 Matrix matrix = new Matrix();
                 if (orientation == 6) {
                     matrix.postRotate(90);
                     angle =90;
+                    System.out.println(angle);
                 }
                 else if (orientation == 3) {
                     matrix.postRotate(180);
                     angle =180;
+                    System.out.println(angle);
                 }
                 else if (orientation == 8) {
                     matrix.postRotate(270);
                     angle =270;
+                    System.out.println(angle);
                 }
                 myBitmap = Bitmap.createBitmap(myBitmap, 0, 0, myBitmap.getWidth(), myBitmap.getHeight(), matrix, true); // rotating bitmap
+                System.out.println(angle);
             }
             catch (Exception e) {
-
+                System.out.println("It broke");
             }
             view_status.setText("Image path: " + realPath + "\n\nYou can start the upload now");
             uploadButton.getBackground().setColorFilter(0xFF00FF00, PorterDuff.Mode.MULTIPLY);
@@ -207,8 +209,8 @@ public class MainActivity extends Activity {
             myImage = (ImageView) findViewById(R.id.imageView);
             myImage.setImageBitmap(myBitmap);
             birdImage = (ImageView) findViewById(R.id.birdView);
-        }
-        else if(resCode == Activity.RESULT_OK && data != null){
+        }*/
+        if(resCode == Activity.RESULT_OK && data != null){
             // Check the SDK Version before calling PathOfImage generator
             if (Build.VERSION.SDK_INT < 11) {
                 System.out.println("Select v1");
@@ -276,8 +278,8 @@ public class MainActivity extends Activity {
         protected Void doInBackground(Void... params) {
             try {
                 response = POST_Data(realPath);
-
-                progress.dismiss();
+                System.out.println("Posted the Data");
+                //progress.dismiss();
 
             } catch (Exception e) {
                 response = "Image was not uploaded!";
@@ -288,22 +290,27 @@ public class MainActivity extends Activity {
 
         @Override
         protected void onPostExecute(Void result) {
-            if(responseCheck.contains("success"))
-            {
-
-                view_status.setTextColor(Color.parseColor("#21c627"));
-
+            if(responseCheck== null){
+                SendImage task_again = new SendImage();
+                task_again.execute();
             }
-            try {
-                System.out.println("Find the flip");
-                view_status.setText(findTheFlip(response));
-                screenshotButton.getBackground().setColorFilter(0xFF00FF00, PorterDuff.Mode.MULTIPLY);
-                screenshotButton.setEnabled(true);
+            else {
+                if (responseCheck.contains("success")) {
 
-            } catch (JSONException e) {
-                e.printStackTrace();
+                    view_status.setTextColor(Color.parseColor("#21c627"));
+
+                }
+                try {
+                    System.out.println("Find the flip");
+                    view_status.setText(findTheFlip(response));
+                    screenshotButton.getBackground().setColorFilter(0xFF00FF00, PorterDuff.Mode.MULTIPLY);
+                    screenshotButton.setEnabled(true);
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                uploadButton.getBackground().setColorFilter(0xffd6d7d7, PorterDuff.Mode.MULTIPLY);
             }
-            uploadButton.getBackground().setColorFilter(0xffd6d7d7, PorterDuff.Mode.MULTIPLY);
         }
     }
 
@@ -321,24 +328,23 @@ public class MainActivity extends Activity {
                 .addFormDataPart("media", "file.jpg",
                         RequestBody.create(MediaType.parse("image/jpg"), new File(filepath)))
                 .build();
-
+        System.out.println(1);
         // Create a POST request to send the data to UPLOAD_URL
         Request request = new Request.Builder()
                 .url(UPLOAD_SERVER)
                 .post(requestBody)
                 .build();
-
+        System.out.println(2);
         // Execute the request and get the response from the server
         Response response = null;
-
+        System.out.println(3);
         try {
             response = client.newCall(request).execute();
-            //response = client.newCall(request).execute();
         } catch (IOException e) {
             Log.d("myTag", "Exception");
             e.printStackTrace();
         }
-
+        System.out.println(4);
         // Check the response to see if the upload succeeded
         if (response == null || !response.isSuccessful()) {
             Log.d("myTag", "Unable to upload to server.");
@@ -349,7 +355,9 @@ public class MainActivity extends Activity {
         return response.body().string();
     }
 
-    public String findTheFlip(String response) throws JSONException {
+    public String findTheFlip (String response)  throws JSONException {
+        progress.show();
+
         String guess;
         Log.d("myTag", response);
 
@@ -404,6 +412,7 @@ public class MainActivity extends Activity {
         else{
             guess = "Nope, there isn't a middle finger in this pic. Try again.";
         }
+        progress.dismiss();
         return guess;
     }
 
