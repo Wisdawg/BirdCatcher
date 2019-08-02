@@ -62,12 +62,13 @@ public class MainActivity extends Activity {
 
 
     public static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 123;
+    public static final int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 123;
     static final String  UPLOAD_SERVER = "https://api.sightengine.com/1.0/check.json";
     static final String api_user = "1667316172";
     static final String api_secret = "QBbnvK6q49UEQiYeQj7y";
 
     protected void onCreate(Bundle savedInstanceState) {
-        if (checkPermissionREAD_EXTERNAL_STORAGE(this)) {
+        if (checkPermissionREAD_EXTERNAL_STORAGE(this)&&checkPermissionWRITE_EXTERNAL_STORAGE(this)) {
             System.out.println("Let's go");
         }
         super.onCreate(savedInstanceState);
@@ -77,7 +78,7 @@ public class MainActivity extends Activity {
         view_status.setText("Select your Image");
 
         selectButton = (Button) findViewById(R.id.button);
-        selectButton.getBackground().setColorFilter(0xFF00FF00, PorterDuff.Mode.MULTIPLY);
+        selectButton.getBackground().setColorFilter(0xFFA682FF, PorterDuff.Mode.MULTIPLY);
         selectButton.setOnClickListener( new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -128,7 +129,7 @@ public class MainActivity extends Activity {
                 );
 
                 // Notify the user that screenshot taken.
-                Toast.makeText(getApplicationContext(), "Screen Captured.",Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Flip Saved",Toast.LENGTH_SHORT).show();
                 view_status.setText("You've downloaded your flipped-photo");
                 view_status.setTextColor(Color.GRAY);
             }
@@ -202,7 +203,7 @@ public class MainActivity extends Activity {
                 System.out.println("It broke");
             }
             view_status.setText("Image path: " + realPath + "\n\nYou can start the upload now");
-            uploadButton.getBackground().setColorFilter(0xFF00FF00, PorterDuff.Mode.MULTIPLY);
+            uploadButton.getBackground().setColorFilter(0xFFA682FF, PorterDuff.Mode.MULTIPLY);
             uploadButton.setEnabled(true);
             screenshotButton.getBackground().setColorFilter(0xffd6d7d7, PorterDuff.Mode.MULTIPLY);
             screenshotButton.setEnabled(false);
@@ -226,7 +227,7 @@ public class MainActivity extends Activity {
             }
             System.out.println(realPath);
             view_status.setText("Image path: " + realPath + "\n\nYou can start the upload now");
-            uploadButton.getBackground().setColorFilter(0xFF00FF00, PorterDuff.Mode.MULTIPLY);
+            uploadButton.getBackground().setColorFilter(0xFFA682FF, PorterDuff.Mode.MULTIPLY);
             uploadButton.setEnabled(true);
             screenshotButton.getBackground().setColorFilter(0xffd6d7d7, PorterDuff.Mode.MULTIPLY);
             screenshotButton.setEnabled(false);
@@ -303,7 +304,7 @@ public class MainActivity extends Activity {
                 try {
                     System.out.println("Find the flip");
                     view_status.setText(findTheFlip(response));
-                    screenshotButton.getBackground().setColorFilter(0xFF00FF00, PorterDuff.Mode.MULTIPLY);
+                    screenshotButton.getBackground().setColorFilter(0xFFA682FF, PorterDuff.Mode.MULTIPLY);
                     screenshotButton.setEnabled(true);
 
                 } catch (JSONException e) {
@@ -448,6 +449,9 @@ public class MainActivity extends Activity {
                         ActivityCompat.requestPermissions((Activity) context,
                                 new String[] { permission },
                                 MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
+                        ActivityCompat.requestPermissions((Activity) context,
+                                new String[] { permission },
+                                MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE);
                     }
                 });
         AlertDialog alert = alertBuilder.create();
@@ -471,6 +475,34 @@ public class MainActivity extends Activity {
                                     (Activity) context,
                                     new String[] { Manifest.permission.READ_EXTERNAL_STORAGE },
                                     MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
+                }
+                return false;
+            } else {
+                return true;
+            }
+
+        } else {
+            return true;
+        }
+    }
+
+    public boolean checkPermissionWRITE_EXTERNAL_STORAGE(final Context context) {
+        int currentAPIVersion = Build.VERSION.SDK_INT;
+        if (currentAPIVersion >= android.os.Build.VERSION_CODES.M) {
+            if (ContextCompat.checkSelfPermission(context,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.shouldShowRequestPermissionRationale(
+                        (Activity) context,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                    showDialog("External storage", context,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+                } else {
+                    ActivityCompat
+                            .requestPermissions(
+                                    (Activity) context,
+                                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,},
+                                    MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE);
                 }
                 return false;
             } else {
